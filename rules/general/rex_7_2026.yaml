@@ -1,0 +1,323 @@
+# Reglas del Instructivo General de Rendición de Cuentas ANID
+# REX N°7 de 23 de enero de 2026.
+# Reemplaza la Resolución Exenta N°54 de 04-05-2023.
+# Aplica a toda rendición de cuentas exigible desde la fecha de total tramitación.
+
+id: rex_7_2026
+nombre: Instructivo General de Rendición de Cuentas ANID
+vigente_desde: 2026-01-23
+reemplaza: rex_7006_2023
+
+# -----------------------------------------------------------------------------
+# Ítems financiables (catálogo maestro)
+# -----------------------------------------------------------------------------
+items:
+  Gastos en Personal:
+    subitems:
+      - Investigadores(as)
+      - Profesionales
+      - Personal Técnico
+      - Personal de Apoyo
+      - Tesistas
+      - Estudiantes de Magíster
+      - Estudiantes de Doctorado
+      - Postdoctorados
+      - Personal Administrativo
+    documentos_validos:
+      - Boleta de Honorarios
+      - Liquidación de Sueldo
+      - Boleta de Prestación de Servicios a Terceros
+      - Recibo Simple Personal Extranjero (Anexo N°4)
+      - Certificado de Pagos Aportes Patronales (PreviRed)
+    requiere_anexos:
+      - Anexo N°3 (Informe de Actividades)
+      - Anexo N°5 (Declaración Jurada de compatibilidad horaria, si aplica)
+
+  Equipamiento:
+    subitems:
+      - Nacionales
+      - Importados
+      - Accesorios Equipo
+      - Traslados, Seguros, Desaduanaje e IVA de Equipo
+      - Adecuación Espacio para Equipo
+      - Instalación y Puesta en Marcha de Equipo
+      - Mantención, Garantías y Seguros de Equipo
+    documentos_validos:
+      - Factura
+      - Boleta de Ventas y Servicios
+      - Formulario de Aduanas
+      - Cartola Bancaria
+      - Boleta de Honorarios
+      - Invoice (internacional)
+    requiere_anexos:
+      - Anexo N°5 (Declaración Jurada Seguros e Inventario, si > 3 UTM)
+
+  Infraestructura y Mobiliario:
+    subitems:
+      - Acondicionamiento de Espacios Físicos
+      - Gastos de Planos y Maquetas
+      - Mobiliario
+    documentos_validos:
+      - Factura
+      - Boleta de Ventas y Servicios
+      - Boleta de Honorarios
+      - Boleta de Prestación de Servicios a Terceros
+      - Invoice (internacional)
+    requiere_anexos: []
+
+  Gastos de Operación:
+    subitems:
+      - Gastos de Administración
+      - Bienes y Materiales
+      - Capacitaciones
+      - Inscripción Seminarios, Congresos, Talleres
+      - Publicaciones
+      - Material Bibliográfico y Suscripciones
+      - Gastos en Difusión
+      - Costo de Producción
+      - Propiedad Intelectual e Industrial
+      - Consultorías y Asesorías
+      - Softwares
+      - Costo de Garantías, Boletas, Pólizas y Pagarés
+      - Reparación Equipamiento
+      - Arriendos en General
+      - Gastos Básicos
+      - Servicios Varios
+      - Viáticos
+      - Pasajes Aéreos
+      - Movilización y Traslados Terrestres
+      - Atención Reuniones
+      - Finiquitos
+      - Otros Gastos de Operación
+    documentos_validos:
+      - Factura
+      - Boleta de Ventas y Servicios
+      - Boleta de Honorarios
+      - Boleta de Prestación de Servicios a Terceros
+      - Invoice (internacional)
+      - Comprobante Electrónico de Compra
+      - Recibo Simple
+      - Recibo Simple Viáticos (Anexo N°6)
+      - Recibo Simple Movilización (Anexo N°7)
+      - Recibo Simple Personal Extranjero (Anexo N°4)
+      - Cartola Bancaria
+    requiere_anexos:
+      - Anexo N°6 (para viáticos)
+      - Anexo N°7 (para movilización)
+      - Anexo N°8 (para atención de reuniones)
+
+  Gastos de Administración Indirectos:
+    subitems: []
+    documentos_validos:
+      - Factura
+      - Boleta de Ventas y Servicios
+      - Formulario de Aduanas
+      - Boleta de Honorarios
+      - Liquidación de Sueldo
+      - Cartola Bancaria
+    requiere_anexos: []
+    rendido_por: RIF
+    nota: No se aceptan gastos valorizados por uso de bienes o servicios.
+
+# -----------------------------------------------------------------------------
+# Reglas duras (motor de validación)
+# Cada regla tiene id, severidad, descripción, aplica_a (items o '*')
+# -----------------------------------------------------------------------------
+reglas:
+  - id: factura_obligatoria_500k
+    severidad: ERROR
+    descripcion: >
+      Para compras superiores a $500.000 (IVA incluido) se debe presentar
+      Factura. En su defecto, boleta con detalle impreso de insumos/servicios
+      adquiridos o guía de despacho adjunta.
+    aplica_a: ["Equipamiento", "Infraestructura y Mobiliario", "Gastos de Operación"]
+    condicion:
+      monto_total_mayor_que: 500000
+      tipo_documento_no_en:
+        - Factura
+        - Factura Afecta
+        - Factura Exenta
+        - Invoice (internacional)
+
+  - id: recibo_simple_max_500k
+    severidad: ERROR
+    descripcion: >
+      Se aceptan Recibos Simples para gastos iguales o inferiores a $500.000
+      a proveedores sin iniciación de actividades. Para montos superiores se
+      requiere autorización previa de la Subdirección ANID.
+    aplica_a: "*"
+    condicion:
+      tipo_documento_en: [Recibo Simple]
+      monto_total_mayor_que: 500000
+
+  - id: fecha_dentro_etapa
+    severidad: ERROR
+    descripcion: >
+      Los gastos deben efectuarse dentro del período de ejecución vigente del
+      proyecto. Excepciones requieren autorización previa de ANID.
+    aplica_a: "*"
+    condicion:
+      fecha_fuera_de_etapa: true
+
+  - id: pasaje_aereo_economica
+    severidad: ERROR
+    descripcion: >
+      La compra de pasajes aéreos debe realizarse en categoría económica.
+      No se aceptan pasajes en clase ejecutiva (Business) ni primera clase.
+    aplica_a: ["Gastos de Operación"]
+    condicion:
+      subitem_en: [Pasajes Aéreos]
+      detalle_contiene_alguno: ["business", "ejecutiva", "primera clase", "first class"]
+
+  - id: alcohol_prohibido
+    severidad: ERROR
+    descripcion: No se aceptan gastos por concepto de bebidas alcohólicas.
+    aplica_a: "*"
+    condicion:
+      detalle_contiene_alguno:
+        - cerveza
+        - vino
+        - whisky
+        - vodka
+        - ron
+        - pisco
+        - tequila
+        - champagne
+        - champaña
+        - licor
+        - aguardiente
+
+  - id: propinas_prohibidas
+    severidad: ERROR
+    descripcion: No se aceptan pagos de propinas.
+    aplica_a: "*"
+    condicion:
+      detalle_contiene_alguno: [propina, propinas, "tip ", tips, gratuity]
+
+  - id: celulares_prohibidos
+    severidad: ERROR
+    descripcion: >
+      Se prohíbe adquirir teléfonos celulares, planes o cargas telefónicas con
+      fondos del proyecto.
+    aplica_a: "*"
+    condicion:
+      detalle_contiene_alguno: [celular, smartphone, "telefono movil", "iphone", plan telefónico, recarga]
+
+  - id: multas_prohibidas
+    severidad: ERROR
+    descripcion: >
+      No se permite imputar gastos asociados a multas (cambios de vuelos,
+      sobrepeso, intereses por mora, retrasos en pagos, costas judiciales).
+    aplica_a: "*"
+    condicion:
+      detalle_contiene_alguno: [multa, mora, "cargo por cambio", "fee de cambio", penalty]
+
+  - id: gift_cards_prohibidas
+    severidad: ERROR
+    descripcion: No se permite entregar incentivos de participación como regalos, dinero o gift cards.
+    aplica_a: "*"
+    condicion:
+      detalle_contiene_alguno: [gift card, "tarjeta de regalo", regalo, incentivo, gift]
+
+  - id: instrumentos_financieros_prohibidos
+    severidad: ERROR
+    descripcion: >
+      Se prohíbe invertir los fondos transferidos en cualquier tipo de instrumento
+      financiero o activo digital (fondos mutuos, acciones, depósitos a plazo,
+      bonos, criptomonedas).
+    aplica_a: "*"
+    condicion:
+      detalle_contiene_alguno:
+        - "fondo mutuo"
+        - "deposito a plazo"
+        - cripto
+        - bitcoin
+        - ethereum
+        - acciones
+        - bonos
+
+  - id: documento_a_nombre_anid
+    severidad: ERROR
+    descripcion: En ningún caso se aceptan documentos de gastos emitidos a nombre de la ANID.
+    aplica_a: "*"
+    condicion:
+      nombre_beneficiario_contiene: ["anid", "agencia nacional de investigacion"]
+
+  - id: moneda_extranjera_sin_tipo_cambio
+    severidad: ERROR
+    descripcion: >
+      En caso de moneda extranjera se debe incluir el cálculo de conversión o
+      tipo de cambio aplicado a pesos chilenos.
+    aplica_a: "*"
+    condicion:
+      moneda_no_clp: true
+      tipo_cambio_faltante: true
+
+  - id: boleta_honorarios_sin_anexo3
+    severidad: ADVERTENCIA
+    descripcion: >
+      Toda Boleta de Honorarios debe acompañarse de un Informe de Actividades
+      (Anexo N°3) que dé cuenta del período del servicio prestado.
+    aplica_a: ["Gastos en Personal"]
+    condicion:
+      tipo_documento_en: [Boleta de Honorarios]
+      anexo_3_pendiente: true
+
+  - id: equipo_3utm_sin_seguro
+    severidad: ADVERTENCIA
+    descripcion: >
+      Equipos con valor mayor a 3 UTM deben estar asegurados, inventariados y
+      acompañados de Declaración Jurada (Anexo N°5).
+    aplica_a: ["Equipamiento"]
+    condicion:
+      monto_total_mayor_que_utm: 3
+      anexo_5_pendiente: true
+
+  - id: rut_faltante
+    severidad: ERROR
+    descripcion: El RUT del beneficiario o proveedor es obligatorio.
+    aplica_a: "*"
+    condicion:
+      rut_faltante: true
+
+  - id: monto_cero
+    severidad: ERROR
+    descripcion: El monto rendido debe ser mayor a cero.
+    aplica_a: "*"
+    condicion:
+      monto_rendido_cero: true
+
+  - id: porcentaje_sin_justificacion
+    severidad: ADVERTENCIA
+    descripcion: >
+      Si el porcentaje rendido es menor al 100%, debe incluirse una justificación
+      del porcentaje aplicado en el prorrateo.
+    aplica_a: "*"
+    condicion:
+      porcentaje_menor_100_sin_justificacion: true
+
+# -----------------------------------------------------------------------------
+# Anexos obligatorios para envío de rendición (Institución Privada / Persona Natural)
+# -----------------------------------------------------------------------------
+anexos_obligatorios:
+  - Anexo N°1 (Formulario de Rendición)
+  - Anexo N°2 (Comprobante de Ingreso)
+  - Anexo N°5 (Declaración Jurada — pertinencia, no inversiones, seguros, compatibilidad horaria)
+
+# -----------------------------------------------------------------------------
+# Plazos
+# -----------------------------------------------------------------------------
+plazos:
+  rendicion_exigible_dias_habiles: 15
+  desde: ultimo_dia_mes_cumplimiento_anualidad
+  prorroga_maxima_porcentaje: 50  # Art. 26 Ley 19.880
+
+# -----------------------------------------------------------------------------
+# Formato de envío digital
+# -----------------------------------------------------------------------------
+formato_envio:
+  plataforma: Formulario de Envío de Rendiciones Digitales (Zendesk ANID)
+  tamano_maximo_archivo_mb: 50
+  agrupacion: un_pdf_por_item
+  orden: mismo_orden_anexo_1
+  custodia_originales: el_beneficiario_debe_conservar_copias

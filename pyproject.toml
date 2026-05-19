@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "anid-rendiciones"
+version = "0.1.0"
+description = "Asistente local para preparar rendiciones de cuentas FONDECYT (ANID, Chile)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Juan Pablo Luna" }]
+keywords = ["anid", "fondecyt", "rendicion", "chile", "investigacion"]
+dependencies = [
+  "streamlit>=1.36",
+  "anthropic>=0.40",
+  "pydantic>=2.7",
+  "pyyaml>=6.0",
+  "openpyxl>=3.1",
+  "xlrd>=2.0",
+  "pypdf>=4.0",
+  "pdf2image>=1.17",
+  "pillow>=10.0",
+  "python-dateutil>=2.9",
+  "rapidfuzz>=3.9",
+]
+
+[project.scripts]
+anid-rendiciones = "anid_rendiciones.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/juanpabloluna/anid-rendiciones"
+Issues = "https://github.com/juanpabloluna/anid-rendiciones/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/anid_rendiciones"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"rules" = "anid_rendiciones/rules"
+"templates" = "anid_rendiciones/templates"

@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# User data — NEVER commit
+inbox/
+output/
+projects_data/
+*.pem
+.env
+.env.local
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Sensitive ANID files: do NOT commit user boletas/facturas
+**/comprobantes/
+**/boletas/
+**/facturas/
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/

@@ -1,0 +1,118 @@
+# Anexo Instructivo Concurso Regular — Etapa 2022 y siguientes
+# Resolución N°20/2022 (FONDECYT)
+# Aplica a proyectos Regular adjudicados desde concurso 2022 en adelante.
+
+id: fondecyt_regular_2022plus
+nombre: FONDECYT Regular — Etapa 2022 y siguientes
+general_instructivo: rex_7_2026
+
+# -----------------------------------------------------------------------------
+# A nombre de quién pueden emitirse los documentos
+# -----------------------------------------------------------------------------
+nombre_documento:
+  Boleta de Honorarios IR: IP  # Investigador Responsable → SIEMPRE a nombre de la IP
+  Gastos de Administración Indirectos: IP
+  Bienes de Capital (COI): "IR_o_IP_o_COI"  # Si COI no pertenece a la IP principal
+  default: "IR_o_IP"
+
+# -----------------------------------------------------------------------------
+# Ítems con tope y restricciones de modificación presupuestaria
+# -----------------------------------------------------------------------------
+items_topes:
+  Honorarios IR:
+    aumentar: false
+    disminuir: true
+  Honorarios COI:
+    aumentar: false
+    disminuir: false
+    nota: Solicitud de disminución debe ser analizada por programa FONDECYT.
+  Personal Técnico y Apoyo:
+    aumentar: true
+    disminuir: true
+  Tesistas:
+    aumentar: true
+    disminuir: false
+    monto_maximo_anual: 7500000
+    monto_minimo_para_mantener: 2500000
+    monto_maximo_por_estudiante_anual: 2500000
+    sin_movilidad_a_otros_items: true
+    reintegrar_si_no_se_ejecuta: true
+  Pasajes / Viáticos Nacionales:
+    aumentar: true
+    disminuir: true
+  Viajes Coop. Internacional - Viáticos:
+    aumentar: true
+    disminuir: true
+    monto_minimo_pasajes: 300000
+    monto_minimo_viaticos: 150000
+  Viajes Coop. Internacional - Pasajes:
+    aumentar: true
+    disminuir: true
+  Infraestructura y Mobiliario:
+    aumentar: true
+    disminuir: true
+  Gastos de Operación:
+    aumentar: true
+    disminuir: true
+  Bienes de Capital:
+    aumentar: true
+    disminuir: true
+
+# -----------------------------------------------------------------------------
+# Gastos NO permitidos con fondos del proyecto (específicos Regular)
+# -----------------------------------------------------------------------------
+gastos_no_permitidos:
+  - Cursos de capacitación no relacionados con el proyecto (idiomas, grados, postdoctorados u otros)
+  - Conexiones institucionales y privadas a Internet (excepto autorizado por FONDECYT)
+  - Actividades sociales / recreativas
+  - Seguros y garantías para equipos declarados en Bienes de Capital
+  - Costos de tramitación de permisos de circulación, patentes, seguros vehículos, revisión técnica
+  - Adquisición y cuentas de teléfonos celulares y red fija
+
+# -----------------------------------------------------------------------------
+# Plazos específicos del concurso
+# -----------------------------------------------------------------------------
+plazos:
+  duracion_etapa_meses: 12
+  cierre_declaracion_sdgl: termino_etapa
+  envio_rendicion_dias_habiles_posteriores: 5
+  revision_documental_anid_dias_corridos: 180
+  saldo_autorizado_extension_maxima_meses: 6
+  saldo_autorizado_extension_ultima_etapa_meses: 4
+
+# -----------------------------------------------------------------------------
+# FIAII (Fondo Institucional de Apoyo a la Infraestructura, concursos 2019-2020)
+# -----------------------------------------------------------------------------
+fiaii:
+  aplica_a_concursos: [2019, 2020]
+  porcentaje_sobre_valor_proyecto: 3
+  excluye_de_base: [honorarios_ir, honorarios_coi, administracion_indirectos]
+  gastos_permitidos:
+    - Bienes de capital
+    - Accesorios de equipos
+    - Softwares y licencias
+    - Seguros y garantías
+    - Compra de servicios (instalación, mantención)
+    - Reparación y mantención de equipamiento
+    - Habilitación y acondicionamiento de espacios físicos
+    - Contratación de personal ocasional
+  gastos_no_permitidos:
+    - Bienes de capital adquiridos con fondos FONDECYT en ejecución asignados al IR
+    - Equipos de telefonía fija o celular
+    - Servicios institucionales y privadas a Internet
+    - Cuentas de servicios básicos
+    - Compra de vehículos (excepto autorizado)
+    - Habilitación de laboratorios con fin docente
+    - Muebles de oficina con fines distintos a la investigación
+
+# -----------------------------------------------------------------------------
+# Datos de reintegro (Banco Estado ANID)
+# -----------------------------------------------------------------------------
+reintegro:
+  institucion: Agencia Nacional de Investigación y Desarrollo
+  banco: Banco Estado
+  direccion: Avenida del Libertador Bernardo O'Higgins N°1111, Santiago
+  swift: BECHCLRM
+  numero_cuenta_corriente: "9017453"
+  rut: 60.915.000-9
+  moneda: Pesos
