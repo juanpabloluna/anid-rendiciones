@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "anid-rendiciones"
-version = "0.1.0"
+version = "0.2.0"
 description = "Asistente local para preparar rendiciones de cuentas FONDECYT (ANID, Chile)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -27,6 +27,7 @@ dependencies = [
 
 [project.scripts]
 anid-rendiciones = "anid_rendiciones.cli:main"
+anid-rendiciones-skill = "anid_rendiciones.skill_cli:main"
 
 [project.urls]
 Homepage = "https://github.com/juanpabloluna/anid-rendiciones"
