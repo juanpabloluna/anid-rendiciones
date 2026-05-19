@@ -27,10 +27,10 @@ from anthropic import Anthropic
 
 from . import advisor as adv
 from . import state as st
-from .classify import cargar_reglas, clasificar
+from .classify import cargar_reglas, clasificar, clasificar_solo_heuristica
 from .extract import extraer_comprobante
 from .generate.anexo1 import generar_anexo1
-from .schema import Item, Proyecto, Severidad
+from .schema import Gasto, Item, Moneda, Proyecto, Severidad, TipoDocumento
 from .validate import resumen_validacion, validar_lote
 
 PAQUETE_DIR = Path(__file__).parent
@@ -120,6 +120,7 @@ def cmd_add(args) -> None:
     val = validar_lote([g], estado.proyecto, reglas_g, reglas_c)[0]
     # Guardar
     estado = st.agregar_gasto(estado, val, _root_dir(args))
+    val = estado.gastos[-1]  # ya con n_correlativo asignado
     # Reportar
     print()
     print(f"✅ Gasto #{val.n_correlativo} agregado:")
@@ -232,6 +233,122 @@ def cmd_advise(args) -> None:
     print(adv.formatear_consejo_md(consejo, estado))
 
 
+def cmd_ingest(args) -> None:
+    """Recibe un Gasto ya extraído (desde Claude Code via Read tool) en JSON
+    y lo persiste. NO llama a la API de Anthropic.
+
+    El JSON puede venir por --json '<string>' o por --json-file <path>.
+    Si item/subitem vienen vacíos, intentamos clasificar con heurísticas.
+    """
+    from dateutil.parser import isoparse
+
+    estado = st.cargar(args.codigo, _root_dir(args))
+
+    if args.json:
+        raw = args.json
+    elif args.json_file:
+        raw = Path(args.json_file).expanduser().read_text(encoding="utf-8")
+    else:
+        raw = sys.stdin.read()
+
+    data = json.loads(raw)
+
+    # Parse fecha
+    fecha = None
+    if data.get("fecha_documento"):
+        try:
+            fecha = isoparse(data["fecha_documento"]).date()
+        except Exception:
+            pass
+
+    # Parse enums tolerantemente
+    try:
+        item = Item(data["item"]) if data.get("item") else None
+    except ValueError:
+        item = None
+    try:
+        tipo_doc = TipoDocumento(data["tipo_documento"]) if data.get("tipo_documento") else None
+    except ValueError:
+        tipo_doc = TipoDocumento.OTRO
+    try:
+        moneda = Moneda(data.get("moneda_original", "CLP"))
+    except ValueError:
+        moneda = Moneda.CLP
+
+    monto_total = int(data.get("monto_total") or 0)
+    monto_rendido = int(data.get("monto_rendido") or monto_total)
+
+    g = Gasto(
+        item=item,
+        subitem=data.get("subitem") or None,
+        rut_beneficiario=data.get("rut_beneficiario") or None,
+        nombre_beneficiario=data.get("nombre_beneficiario") or None,
+        detalle_gasto=data.get("detalle_gasto") or "",
+        tipo_documento=tipo_doc,
+        n_documento=data.get("n_documento") or None,
+        fecha_documento=fecha,
+        monto_total=monto_total,
+        monto_rendido=monto_rendido,
+        porcentaje_rendido=float(data.get("porcentaje_rendido") or 100.0),
+        justificacion=data.get("justificacion") or None,
+        moneda_original=moneda,
+        monto_moneda_original=data.get("monto_moneda_original"),
+        tipo_cambio=data.get("tipo_cambio"),
+        archivo_origen=data.get("archivo_origen"),
+        confianza_extraccion=float(data.get("confianza_extraccion") or 1.0),
+        revisado_humano=bool(data.get("revisado_humano", False)),
+    )
+
+    # Clasificar con heurísticas si falta
+    reglas_g = cargar_reglas(RULES_GENERAL)
+    reglas_c = cargar_reglas(RULES_CONCURSO)
+    g = clasificar_solo_heuristica(g, reglas_g)
+
+    # Validar (sin Claude)
+    val = validar_lote([g], estado.proyecto, reglas_g, reglas_c)[0]
+
+    # Persistir
+    estado = st.agregar_gasto(estado, val, _root_dir(args))
+    val = estado.gastos[-1]  # ya con n_correlativo asignado
+
+    # Reportar
+    print(f"✅ Gasto #{val.n_correlativo} agregado al proyecto {estado.proyecto.codigo}:")
+    print(f"  Ítem:        {val.item.value if val.item else '⚠️ SIN CLASIFICAR'} / {val.subitem or '—'}")
+    print(f"  Proveedor:   {val.nombre_beneficiario or '—'} ({val.rut_beneficiario or '—'})")
+    print(f"  Documento:   {val.tipo_documento.value if val.tipo_documento else '—'} N° {val.n_documento or '—'}")
+    print(f"  Fecha:       {val.fecha_documento.isoformat() if val.fecha_documento else '—'}")
+    print(f"  Monto rendido: ${val.monto_rendido:,} CLP (total ${val.monto_total:,})")
+    if val.hallazgos:
+        print()
+        print(f"⚠️  Hallazgos:")
+        for h in val.hallazgos:
+            icon = "🔴" if h.severidad == Severidad.ERROR else "🟡"
+            print(f"  {icon} [{h.regla_id}] {h.mensaje[:120]}")
+    print()
+    print(st.resumen_disponibles(estado))
+
+
+def cmd_show_rules(args) -> None:
+    """Vuelca las reglas YAML a stdout, para que el modelo huésped las lea."""
+    if args.parte == "general":
+        path = RULES_GENERAL
+    elif args.parte == "concurso":
+        path = RULES_CONCURSO
+    else:
+        sys.stderr.write(f"parte desconocida: {args.parte}\n")
+        sys.exit(2)
+    print(path.read_text(encoding="utf-8"))
+
+
+def cmd_show_state(args) -> None:
+    """Vuelca el state.json crudo, para que el modelo huésped lo lea sin parsear."""
+    path = st.ruta_state(args.codigo, _root_dir(args))
+    if not path.exists():
+        sys.stderr.write(f"No existe estado para {args.codigo}\n")
+        sys.exit(1)
+    print(path.read_text(encoding="utf-8"))
+
+
 def cmd_export(args) -> None:
     estado = st.cargar(args.codigo, _root_dir(args))
     if not PLANTILLA_ANEXO1.exists():
@@ -324,6 +441,26 @@ def build_parser() -> argparse.ArgumentParser:
     pad2.add_argument("--contexto", default=None)
     pad2.add_argument("--json", action="store_true")
     pad2.set_defaults(func=cmd_advise)
+
+    # ingest (no necesita API key — para uso desde el skill /rendicion)
+    pin = sub.add_parser(
+        "ingest",
+        help="Ingestar un Gasto ya extraído (JSON) sin llamar a Claude API. Usado por el skill.",
+    )
+    pin.add_argument("codigo")
+    pin.add_argument("--json", help="Gasto como JSON string")
+    pin.add_argument("--json-file", dest="json_file", help="Ruta a archivo JSON")
+    pin.set_defaults(func=cmd_ingest)
+
+    # show-rules (vuelca el YAML para que el modelo huésped lo lea)
+    psr = sub.add_parser("show-rules", help="Imprimir reglas YAML (general | concurso)")
+    psr.add_argument("parte", choices=["general", "concurso"])
+    psr.set_defaults(func=cmd_show_rules)
+
+    # show-state (vuelca el state.json)
+    pst = sub.add_parser("show-state", help="Imprimir state.json del proyecto")
+    pst.add_argument("codigo")
+    pst.set_defaults(func=cmd_show_state)
 
     # export
     pe = sub.add_parser("export", help="Generar Anexo N°1 XLSX")

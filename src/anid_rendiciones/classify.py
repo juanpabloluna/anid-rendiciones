@@ -9,6 +9,7 @@ Estrategia:
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -24,11 +25,18 @@ MODEL_CLASSIFY = "claude-haiku-4-5-20251001"
 
 
 # Heurísticas: keyword → (Item, sub-item sugerido)
+# IMPORTANTE: el orden importa — la primera coincidencia gana.
+# Por eso Equipamiento va ANTES que "libro/book" (para que "notebook" matchee
+# como equipamiento y no como material bibliográfico).
 HEURISTICAS = [
     # Personal
     (["honorarios", "boleta de honorarios"], Item.PERSONAL, None),
     (["liquidación de sueldo", "liquidacion sueldo"], Item.PERSONAL, "Personal Administrativo"),
     (["previred", "aportes patronales"], Item.PERSONAL, None),
+    # Equipamiento (antes que Material Bibliográfico para evitar match "book" en "notebook")
+    (["notebook", "laptop", "macbook", "computador", "computer pc", "tablet", "ipad",
+      "impresora", "disco duro", "ssd", "monitor", "kit raspberry"], Item.EQUIPAMIENTO, "Nacionales"),
+    (["instrumento de laboratorio", "espectrofotómetro", "microscopio", "balanza analítica"], Item.EQUIPAMIENTO, "Nacionales"),
     # Operación — viajes
     (["pasaje aéreo", "pasaje aereo", "boleto aéreo", "boarding pass", "latam", "sky airline", "jetsmart"], Item.OPERACION, "Pasajes Aéreos"),
     (["viático", "viatico"], Item.OPERACION, "Viáticos"),
@@ -42,9 +50,6 @@ HEURISTICAS = [
     (["libro", "book", "suscripción", "subscription"], Item.OPERACION, "Material Bibliográfico y Suscripciones"),
     (["software", "licencia", "license"], Item.OPERACION, "Softwares"),
     (["arriendo", "alquiler de sala"], Item.OPERACION, "Arriendos en General"),
-    # Equipamiento
-    (["notebook", "laptop", "computador", "computer", "macbook", "tablet", "ipad", "impresora", "disco duro", "ssd", "monitor"], Item.EQUIPAMIENTO, "Nacionales"),
-    (["instrumento de laboratorio", "espectrofotómetro", "microscopio"], Item.EQUIPAMIENTO, "Nacionales"),
     # Infraestructura
     (["mobiliario", "escritorio", "silla", "estantería"], Item.INFRAESTRUCTURA, "Mobiliario"),
     (["habilitación de espacio", "acondicionamiento"], Item.INFRAESTRUCTURA, "Acondicionamiento de Espacios Físicos"),
@@ -54,6 +59,15 @@ HEURISTICAS = [
 def _detalle_lower(g: Gasto) -> str:
     parts = [g.detalle_gasto or "", g.nombre_beneficiario or ""]
     return " ".join(parts).lower()
+
+
+def _match_keyword(texto: str, keyword: str) -> bool:
+    """Match con word boundaries para keywords cortos; substring para frases."""
+    kw = keyword.lower()
+    if " " in kw:
+        return kw in texto
+    # palabra entera (acentos y caracteres latinos ok)
+    return bool(re.search(rf"(?<!\w){re.escape(kw)}(?!\w)", texto, flags=re.UNICODE))
 
 
 def clasificar_heuristica(g: Gasto) -> Optional[tuple[Item, Optional[str]]]:
@@ -74,7 +88,7 @@ def clasificar_heuristica(g: Gasto) -> Optional[tuple[Item, Optional[str]]]:
         return (Item.OPERACION, "Movilización y Traslados Terrestres")
 
     for keywords, item, subitem in HEURISTICAS:
-        if any(k in texto for k in keywords):
+        if any(_match_keyword(texto, k) for k in keywords):
             return (item, subitem)
 
     return None
@@ -185,6 +199,34 @@ def clasificar(
     if item and subitem:
         subitem = normalizar_subitem(subitem, item, rules_general)
 
+    return g.model_copy(update={"item": item, "subitem": subitem})
+
+
+def clasificar_solo_heuristica(
+    g: Gasto,
+    rules_general: dict,
+) -> Gasto:
+    """Clasifica usando SÓLO heurísticas (sin llamar a Claude).
+
+    Útil cuando la app huésped (e.g. el skill `/rendicion` corriendo dentro
+    de Claude Code) ya tiene un modelo y queremos evitar la llamada duplicada
+    a la API. Si las heurísticas no deciden, deja item/subitem en None y
+    el usuario los completa.
+    """
+    if g.item is not None:
+        # Ya viene clasificado; sólo normalizar subitem si vino texto libre
+        if g.subitem:
+            normalizado = normalizar_subitem(g.subitem, g.item, rules_general)
+            if normalizado:
+                return g.model_copy(update={"subitem": normalizado})
+        return g
+
+    heur = clasificar_heuristica(g)
+    if heur is None:
+        return g
+    item, subitem = heur
+    if item and subitem:
+        subitem = normalizar_subitem(subitem, item, rules_general)
     return g.model_copy(update={"item": item, "subitem": subitem})
 
 
